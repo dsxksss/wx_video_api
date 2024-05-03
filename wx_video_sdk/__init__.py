@@ -2,7 +2,7 @@ import json
 import time
 from typing import Any, List
 import requests
-from utils import create_qc_code
+from utils import create_qc_code, is_within_days
 from api_feilds import VideoVisibleTypes, WxVApiFields
 
 
@@ -308,15 +308,31 @@ class WXVideoSDK:
                     cb(self, object_id, video_readcount, video_create_time)
 
 
-def update_video_list_visible_to_public(
-    sdk: WXVideoSDK, object_id, read_count, create_time
-):
-    sdk.change_video_visible(object_id, VideoVisibleTypes.Private)
-
-
 if __name__ == "__main__":
     sdk = WXVideoSDK()
     video_list = sdk.get_video_list()
     print(video_list)
 
-    sdk.on_video_readcount_upper_do(100, update_video_list_visible_to_public)
+    days = 2
+    max_video_count = 100
+    video_visible_type = VideoVisibleTypes.Private
+
+    def update_video_list_visible_to_public(
+        sdk: WXVideoSDK, object_id, read_count, create_time
+    ):
+        current_timestamp = round(float(time.time()))
+        video_create_timestamp = create_time
+
+        print("current_timestamp: ", current_timestamp)
+        print("video_create_timestamp: ", video_create_timestamp)
+
+        if is_within_days(
+            days=days,
+            new_timestamp=current_timestamp,
+            old_timestamp=video_create_timestamp,
+        ):
+            sdk.change_video_visible(object_id, video_visible_type)
+
+    sdk.on_video_readcount_upper_do(
+        max_video_count, update_video_list_visible_to_public
+    )
