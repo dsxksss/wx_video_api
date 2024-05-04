@@ -1,3 +1,4 @@
+import hashlib
 from qrcode.main import QRCode
 from datetime import datetime, timedelta
 
@@ -40,6 +41,15 @@ def is_within_days(days: int, new_timestamp: float, old_timestamp: float):
 
     # 判断差值是否在两天之内
     return delta <= timedelta(days=days)
+
+
+def get_sha256_hash_of_file(file_path):
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        # 读取文件直到结束
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
 
 
 if __name__ == "__main__":
