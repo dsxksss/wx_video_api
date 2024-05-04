@@ -107,6 +107,7 @@ class WXVideoSDK:
             (1, 1): "登录成功",
             (5, 2): "没有可登录的视频号",
             (4, 0): "二维码已经过期",
+            (3, 0): "已取消登录.",
         }
 
         if status == 1 and acct_status == 1:
@@ -305,6 +306,7 @@ class WXVideoSDK:
     def send_private_msg(
         self, session_id, from_username, to_username, msg_content: str
     ):
+        print("send_private_msg")
         myUUID = str(uuid.uuid4())
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -348,6 +350,7 @@ class WXVideoSDK:
             file_md5 = get_sha256_hash_of_file(file_path)
             chunk_size = 512 * 1024
             chunks = -(-file_size // chunk_size)
+            img_msg = {}
 
             for chunk in range(chunks):
                 timestamp = str(int(time.time() * 1000))
@@ -383,18 +386,19 @@ class WXVideoSDK:
                     cookies=self.cookie,
                 )
                 res = response.json()
-                print(res)
-                if chunk == chunks:
-                    return res["data"]["imgMsg"]
+                img_msg = res["data"]["imgMsg"]
 
-    def send_private_img(self, session_id, from_username, to_username, img_path: str):
+            return img_msg
+
+    def send_private_img(
+        self, session_id, from_username: str, to_username: str, img_path: str
+    ):
         print("send_private_img")
 
         # 切片上传图片
         img_msg = self.upload_media_info(
             from_username=from_username, to_username=to_username, file_path=img_path
         )
-
         myUUID = str(uuid.uuid4())
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -418,14 +422,12 @@ class WXVideoSDK:
             "scene": 7,
             "reqScene": 7,
         }
-        response = requests.post(
+        requests.post(
             WxVApiFields.PrivateMsg.send_private_msg,
             headers=headers,
             data=json.dumps(data),
             cookies=self.cookie,
         )
-        res = response.json()
-        print(res)
 
     # 回复视频评论
     def send_comment(self, export_id, comment, comment_content: str):
@@ -554,12 +556,14 @@ class WXVideoSDK:
 
         if msgs:
             for msg in msgs:
-                cb(
+                is_sended = cb(
                     self,
                     msg["sessionId"],
                     msg["toUsername"],
                     msg["fromUsername"],
                 )
+                if is_sended:
+                    self.private_already_sender.add(msg["fromUsername"])
 
     def load_private_history_already_senders(self, send_text: str):
         # 确保消息已经发送过了
@@ -593,7 +597,7 @@ if __name__ == "__main__":
     video_visible_type = VideoVisibleTypes.Private
 
     auto_send_comment_text = "你好我是test 评论回复"
-    auto_send_private_msg = "你好我是 私信的图片adddawawadtest msg"
+    auto_send_private_msg = "你好我是私信的test IMG"
     auto_send_img_path = r"D:\wx_video_api\QR.png"
 
     # 载入历史聊天中已经发送过的用户
@@ -624,8 +628,12 @@ if __name__ == "__main__":
 
     def send_ones_custom_private_msg(
         sdk: WXVideoSDK, session_id: str, from_username: str, to_username: str
-    ):
-        if not from_username in sdk.private_already_sender:
+    ) -> bool:
+        print(sdk.private_already_sender)
+        print(
+            f"对比结果是：{ to_username not in sdk.private_already_sender}"
+        )
+        if to_username not in sdk.private_already_sender:
             sdk.send_private_msg(
                 session_id=session_id,
                 from_username=from_username,
@@ -638,7 +646,9 @@ if __name__ == "__main__":
                 to_username=to_username,
                 img_path=auto_send_img_path,
             )
-            sdk.private_already_sender.add(from_username)
+            return True
+        else:
+            return False
 
     while True:
         # 全局运行间隔
