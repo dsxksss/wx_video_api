@@ -563,14 +563,14 @@ class WXVideoSDK:
                     msg["fromUsername"],
                 )
                 if is_sended:
-                    self.private_already_sender.add(msg["fromUsername"])
+                    self.private_already_sender.add(msg["sessionId"])
 
     def load_private_history_already_senders(self, send_text: str):
         # 确保消息已经发送过了
         history_msgs = sdk.get_history_msgs()
         for msg in history_msgs:
             if msg["rawContent"] == send_text:
-                self.private_already_sender.add(msg["fromUsername"])
+                self.private_already_sender.add(msg["sessionId"])
 
     def load_comment_already_senders(self, send_comment: str):
         # 确保消息已经发送过了
@@ -597,7 +597,7 @@ if __name__ == "__main__":
     video_visible_type = VideoVisibleTypes.Private
 
     auto_send_comment_text = "你好我是test 评论回复"
-    auto_send_private_msg = "你好我是私信的test IMG"
+    auto_send_private_msg = "你好我是私信的 test IMG1"
     auto_send_img_path = r"D:\wx_video_api\QR.png"
 
     # 载入历史聊天中已经发送过的用户
@@ -629,11 +629,7 @@ if __name__ == "__main__":
     def send_ones_custom_private_msg(
         sdk: WXVideoSDK, session_id: str, from_username: str, to_username: str
     ) -> bool:
-        print(sdk.private_already_sender)
-        print(
-            f"对比结果是：{ to_username not in sdk.private_already_sender}"
-        )
-        if to_username not in sdk.private_already_sender:
+        if session_id not in sdk.private_already_sender:
             sdk.send_private_msg(
                 session_id=session_id,
                 from_username=from_username,
