@@ -1,5 +1,4 @@
 import base64
-from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import json
 import os
@@ -7,8 +6,8 @@ import time
 from typing import Any, List
 import uuid
 import requests
-from utils import create_qc_code, get_sha256_hash_of_file, is_within_days
-from api_feilds import VideoVisibleTypes, WxVApiFields
+from wx_video_sdk.utils import create_qc_code, get_sha256_hash_of_file, is_within_days
+from wx_video_sdk.api_feilds import WxVApiFields
 
 
 class WXVideoSDK:
@@ -17,10 +16,6 @@ class WXVideoSDK:
     cookie = {}
     login_cookie = {}
     finder_username = ""
-    latitude = 0
-    longitude = 0
-    city = ""
-    trace_key = ""
     private_already_sender = set()
     comment_already_sender = set()
 
@@ -274,6 +269,7 @@ class WXVideoSDK:
         return res["data"]["comment"]
 
     def change_video_visible(self, object_id: str, visible_type: int) -> bool:
+        print("change_video_visible")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -431,6 +427,7 @@ class WXVideoSDK:
 
     # 回复视频评论
     def send_comment(self, export_id, comment, comment_content: str):
+        print("send_comment")
         myUUID = str(uuid.uuid4())
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -552,7 +549,7 @@ class WXVideoSDK:
                 cb(self, export_id, comment)
 
     def on_get_new_msg_do(self, cb: Any) -> None:
-        msgs = sdk.get_new_msgs()
+        msgs = self.get_new_msgs()
 
         if msgs:
             for msg in msgs:
@@ -567,7 +564,7 @@ class WXVideoSDK:
 
     def load_private_history_already_senders(self, send_text: str):
         # 确保消息已经发送过了
-        history_msgs = sdk.get_history_msgs()
+        history_msgs = self.get_history_msgs()
         for msg in history_msgs:
             if msg["rawContent"] == send_text:
                 self.private_already_sender.add(msg["sessionId"])
@@ -585,75 +582,3 @@ class WXVideoSDK:
                     if level_comment["commentContent"] == send_comment:
                         self.comment_already_sender.add(comment["commentId"])
                         break
-
-
-if __name__ == "__main__":
-    print("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
-    sdk = WXVideoSDK()
-
-    run_delay = 4
-    days = 2
-    max_video_count = 100
-    video_visible_type = VideoVisibleTypes.Private
-
-    auto_send_comment_text = "你好我是test 评论回复"
-    auto_send_private_msg = "你好我是私信的 test IMG1"
-    auto_send_img_path = r"D:\wx_video_api\QR.png"
-
-    # 载入历史聊天中已经发送过的用户
-    sdk.load_private_history_already_senders(auto_send_private_msg)
-    sdk.load_comment_already_senders(auto_send_comment_text)
-
-    def update_video_list_visible_to_public(
-        sdk: WXVideoSDK, object_id, read_count, create_time
-    ):
-        current_timestamp = round(float(time.time()))
-        video_create_timestamp = create_time
-
-        if is_within_days(
-            days=days,
-            new_timestamp=current_timestamp,
-            old_timestamp=video_create_timestamp,
-        ):
-            sdk.change_video_visible(object_id, video_visible_type)
-
-    def send_ones_custom_video_comment(sdk: WXVideoSDK, export_id, comment):
-        if not comment["commentId"] in sdk.comment_already_sender:
-            sdk.send_comment(
-                export_id=export_id,
-                comment=comment,
-                comment_content=auto_send_comment_text,
-            )
-            sdk.comment_already_sender.add(comment["commentId"])
-
-    def send_ones_custom_private_msg(
-        sdk: WXVideoSDK, session_id: str, from_username: str, to_username: str
-    ) -> bool:
-        if session_id not in sdk.private_already_sender:
-            sdk.send_private_msg(
-                session_id=session_id,
-                from_username=from_username,
-                to_username=to_username,
-                msg_content=auto_send_private_msg,
-            )
-            sdk.send_private_img(
-                session_id=session_id,
-                from_username=from_username,
-                to_username=to_username,
-                img_path=auto_send_img_path,
-            )
-            return True
-        else:
-            return False
-
-    while True:
-        # 全局运行间隔
-        time.sleep(run_delay)
-
-        # sdk.on_video_readcount_upper_do(
-        #     max_video_count, update_video_list_visible_to_public
-        # )
-
-        sdk.on_get_new_msg_do(send_ones_custom_private_msg)
-
-        # sdk.on_video_comment_do(send_ones_custom_video_comment)
