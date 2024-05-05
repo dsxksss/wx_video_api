@@ -6,12 +6,13 @@ import time
 from typing import Any, List
 import uuid
 import requests
-from wx_video_sdk.utils import create_qc_code, get_sha256_hash_of_file, is_within_days
+from wx_video_sdk.utils import create_qc_code, get_sha256_hash_of_file
 from wx_video_sdk.api_feilds import WxVApiFields
 
 
 class WXVideoSDK:
     uin = "0000000000"
+    nick_name = ""
     token = ""
     cookie = {}
     login_cookie = {}
@@ -146,6 +147,7 @@ class WXVideoSDK:
 
         # 保存获取的用户标识
         self.finder_username = res["data"]["finderUser"]["finderUsername"]
+        self.nick_name = res["data"]["finderUser"]["nickname"]
 
     def get_x_wechat_uin(self):
         print("get_x_wechat_uin")
@@ -204,7 +206,7 @@ class WXVideoSDK:
         self, unread: bool = False, need_comment_count: bool = True
     ) -> List[Any]:
         print("get_video_list")
-        timestamp = int(time.time() * 1000)
+        timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
         }
@@ -231,12 +233,15 @@ class WXVideoSDK:
         )
         res = response.json()
         if not res["data"]["list"]:
-            print("视频列表获取失败")
+            print("视频列表获取失败, 列表可能为空或者数据问题")
+            return []
 
-        return res["data"]["list"]
+        video_list = res["data"]["list"]
+
+        return video_list
 
     def get_comment_list(
-        self, export_id, row, cb: Any = lambda comment: None
+        self, export_id, video, cb: Any = lambda comment: None
     ) -> List[Any]:
         print("get_comment_list")
         timestamp = str(int(time.time() * 1000))
@@ -265,7 +270,9 @@ class WXVideoSDK:
         )
         res = response.json()
         if not res["data"]["comment"]:
-            print("评论获取失败")
+            print("评论获取失败, 列表可能为空或者数据问题")
+            return []
+
         return res["data"]["comment"]
 
     def change_video_visible(self, object_id: str, visible_type: int) -> bool:

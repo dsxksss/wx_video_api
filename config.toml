@@ -1,20 +1,45 @@
 # 脚本配置
+# 配置说明：
+# 生效时间区间包含了days字样的配置效果如下
+# days = 2 表示昨天指，days = 3 表示前天至今天
+
 [run_config]
 # 运行延迟间隔，值越小脚本处理速度越快，不建议小于1，默认4
 run_delay = 4
+# 设置最近输出几天之内要查看的视频数据(按该视频创建的时间)，默认2
+create_video_report_days = 3
 
 
-# 自定义配置
-[custom_config]
-# 设置最近几天之内要处理的视频，默认2
-days = 2
+# 操作配置
+# 视频是否可见操作配置
+[auto_video_visible]
+# 是否开启自动修改视频可见功能(0:关闭, 1:开启)，默认1
+visible_target = 1
+# 设置最近几天之内要处理的视频(按该视频创建的时间)，默认2
+auto_video_visible_days = 3
 # 设置当浏览量大于多少要处理的视频(和days配置配合使用)，默认5500
-max_video_count = 5500
+max_video_count = 100
 # 设置当以上两个配置都触发后的视频是否公开或隐藏(1:所有人可见,3:仅自己可见)，默认值3
-video_visible_type = 3
+video_visible_type = 1
+
+# 视频自动回复评论操作配置
+[auto_send_comment]
+# 是否开启评论自动回复(0:关闭, 1:开启)，默认1
+comment_target = 1
+# 回复自己的评论(0:关闭, 1:开启)，默认0
+self_comment_target = 1
+# 设置最近几天之内要处理的评论(按该评论创建的时间)，默认2
+auto_send_comment_days = 2
 # 自动回复评论内容
 auto_send_comment_text = "你好我是config toml test 评论回复"
+
+# 视频自动回复私信操作配置 (这里只处理当脚本开启之后，用户再发送过来的私信)
+[auto_send_private_msg]
+# 是否开启消息发送(0:关闭, 1:开启)，默认1
+private_msg_target = 1
+# 是否开启图片发送(0:关闭, 1:开启)，默认1
+private_img_target = 1
 # 自动回复私信文字内容
-auto_send_private_msg = "你好我是私信的 config tmol test IMG1"
+auto_send_private_msg = "你好我是私信的消息"
 # 自动回复私信图片文件路径
-auto_send_img_path = "D:/wx_video_api/QR.png"
+auto_send_img_path = "./icon.png"
