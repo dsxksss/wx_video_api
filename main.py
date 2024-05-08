@@ -137,22 +137,22 @@ if __name__ == "__main__":
 
         while True:
             # 全局运行间隔
-            video_list = sdk.get_video_list()
-            for video in video_list:
-                print("create_video_report_days")
-                create_video_report(video, video_day=create_video_report_days)
+            # video_list = sdk.get_video_list()
+            # for video in video_list:
+            #     print("create_video_report_days")
+            #     create_video_report(video, video_day=create_video_report_days)
 
-            if visible_target == 1:
-                time.sleep(max(1, run_delay // 3))
-                print("update_video_list_visible")
-                sdk.on_video_readcount_upper_do(
-                    max_video_count, update_video_list_visible
-                )
+            # if visible_target == 1:
+            #     time.sleep(max(1, run_delay // 3))
+            #     print("update_video_list_visible")
+            #     sdk.on_video_readcount_upper_do(
+            #         max_video_count, update_video_list_visible
+            #     )
 
-            if comment_target == 1:
-                time.sleep(max(1, run_delay // 3))
-                print("send_ones_custom_video_comment")
-                sdk.on_video_comment_do(send_ones_custom_video_comment)
+            # if comment_target == 1:
+            #     time.sleep(max(1, run_delay // 3))
+            #     print("send_ones_custom_video_comment")
+            #     sdk.on_video_comment_do(send_ones_custom_video_comment)
 
             time.sleep(max(1, run_delay // 3))
             print("send_ones_custom_private_msg")
