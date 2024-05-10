@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import toml
@@ -50,7 +51,7 @@ def read_config(file_path):
 
 if __name__ == "__main__":
     try:
-        print("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
+        logging.info("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
         (
             run_delay,
             create_video_report_days,
@@ -139,24 +140,24 @@ if __name__ == "__main__":
             # 全局运行间隔
             # video_list = sdk.get_video_list()
             # for video in video_list:
-            #     print("create_video_report_days")
+            #     logging.debug("create_video_report_days")
             #     create_video_report(video, video_day=create_video_report_days)
 
             # if visible_target == 1:
             #     time.sleep(max(1, run_delay // 3))
-            #     print("update_video_list_visible")
+            #     logging.debug("update_video_list_visible")
             #     sdk.on_video_readcount_upper_do(
             #         max_video_count, update_video_list_visible
             #     )
 
             # if comment_target == 1:
             #     time.sleep(max(1, run_delay // 3))
-            #     print("send_ones_custom_video_comment")
+            #     logging.debug("send_ones_custom_video_comment")
             #     sdk.on_video_comment_do(send_ones_custom_video_comment)
 
             time.sleep(max(1, run_delay // 3))
-            print("send_ones_custom_private_msg")
+            logging.debug("send_ones_custom_private_msg")
             sdk.on_get_new_msg_do(send_ones_custom_private_msg)
     except Exception as e:
-        print(f"脚本崩溃: {e}")
+        logging.debug(f"脚本崩溃: {e}")
         input("按任意键结束")

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import time
 from typing import Any
@@ -68,6 +69,28 @@ def parse_timestamp(timestamp, custom_strfmt="%Y-%m-%d %H:%M:%S"):
 def mkdir_if_not_exist(path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def setLoggingDefaultConfig() -> None:
+    Log_level = 15
+
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler("./wx_video_sdk.log", encoding="utf-8")
+
+    console_handler.setLevel(Log_level)
+    file_handler.setLevel(Log_level)
+
+    console_format = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_format = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+    console_handler.setFormatter(console_format)
+    file_handler.setFormatter(file_format)
+
+    logging.basicConfig(level=Log_level, handlers=[console_handler, file_handler])
 
 
 def create_video_report(video: Any, video_day: int):
