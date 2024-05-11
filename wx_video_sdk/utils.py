@@ -81,10 +81,10 @@ def setLoggingDefaultConfig() -> None:
     file_handler.setLevel(Log_level)
 
     console_format = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "[%(asctime)s] %(funcName)s - %(levelname)s | %(message)s"
     )
     file_format = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "[%(asctime)s] %(funcName)s - %(levelname)s | %(message)s"
     )
 
     console_handler.setFormatter(console_format)

@@ -32,11 +32,10 @@ class WXVideoSDK:
     cache_handler: CacheHandler = CacheHandler("./wx_video_sdk_cache.json")
 
     def __init__(self) -> None:
-        setLoggingDefaultConfig()
         self.login()
 
     def request(self, url, ext_params={}, ext_data={}, ext_handler={}):
-        logging.debug("request url [%s]", url)
+        logging.log(15, "request url [%s]", url)
         # 获取当前时间戳
         timestamp = str(int(time.time() * 1000))
         headers = {"X-Wechat-Uin": self.uin}
@@ -129,7 +128,6 @@ class WXVideoSDK:
         """创建会话
         return true if the session is created successfully
         """
-        logging.debug("create_session")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -187,7 +185,6 @@ class WXVideoSDK:
         return False
 
     def get_auth_data(self):
-        logging.debug("get_auth_data")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -222,7 +219,6 @@ class WXVideoSDK:
         self.nick_name = res["data"]["finderUser"]["nickname"]
 
     def get_x_wechat_uin(self):
-        logging.debug("get_x_wechat_uin")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -249,7 +245,6 @@ class WXVideoSDK:
 
     def get_login_cookie(self):
         timestamp = str(int(time.time() * 1000))
-        logging.debug("get_login_cookie")
         headers = {"X-Wechat-Uin": self.uin}
         data = {
             "timestamp": timestamp,
@@ -277,7 +272,6 @@ class WXVideoSDK:
     def get_video_list(
         self, unread: bool = False, need_comment_count: bool = True
     ) -> List[Any]:
-        logging.debug("get_video_list")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -315,7 +309,6 @@ class WXVideoSDK:
     def get_comment_list(
         self, export_id, video, cb: Any = lambda comment: None
     ) -> List[Any]:
-        logging.debug("get_comment_list")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -348,7 +341,6 @@ class WXVideoSDK:
         return res["data"]["comment"]
 
     def change_video_visible(self, object_id: str, visible_type: int) -> bool:
-        logging.debug("change_video_visible")
         timestamp = str(int(time.time() * 1000))
         headers = {
             "X-Wechat-Uin": self.uin,
@@ -381,7 +373,6 @@ class WXVideoSDK:
     def send_private_msg(
         self, session_id, from_username, to_username, msg_content: str
     ):
-        logging.debug("send_private_msg")
         myUUID = str(uuid.uuid4())
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -412,10 +403,9 @@ class WXVideoSDK:
             cookies=self.cookie,
         )
         res = response.json()
-        logging.debug(res)
+        logging.log(15, res)
 
     def upload_media_info(self, from_username, to_username, file_path) -> Any:
-        logging.debug("upload_media_info")
         headers = {
             "X-Wechat-Uin": self.uin,
             "Content-Type": "application/json",
@@ -470,8 +460,6 @@ class WXVideoSDK:
     def send_private_img(
         self, session_id, from_username: str, to_username: str, img_path: str
     ):
-        logging.debug("send_private_img")
-
         # 切片上传图片
         img_msg = self.upload_media_info(
             from_username=from_username, to_username=to_username, file_path=img_path
@@ -506,11 +494,10 @@ class WXVideoSDK:
             cookies=self.cookie,
         )
         res = response.json()
-        logging.debug(res)
+        logging.log(15, res)
 
     # 回复视频评论
     def send_comment(self, export_id, comment, comment_content: str):
-        logging.debug("send_comment")
         myUUID = str(uuid.uuid4())
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -542,7 +529,6 @@ class WXVideoSDK:
     #  接收未读的私信消息
     def get_new_msgs(self) -> List[Any]:
         timestamp = str(int(time.time() * 1000))
-        logging.debug("get_new_msg")
         headers = {"X-Wechat-Uin": self.uin}
         data = {
             "cookie": self.login_cookie,
@@ -561,14 +547,13 @@ class WXVideoSDK:
             cookies=self.cookie,
         )
         res = response.json()
-        logging.debug(res)
+        logging.log(15, res)
         msgs = res["data"]["msg"]
         return msgs
 
     #  接收历史私信消息
     def get_history_msgs(self) -> List[Any]:
         timestamp = str(int(time.time() * 1000))
-        logging.debug("get_history_msg")
         headers = {"X-Wechat-Uin": self.uin}
         data = {
             "cookie": self.login_cookie,
