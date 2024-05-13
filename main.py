@@ -1,6 +1,8 @@
 import logging
 import os
+import sys
 import time
+import traceback
 import toml
 from wx_video_sdk import WXVideoSDK
 from wx_video_sdk.utils import (
@@ -140,29 +142,30 @@ def main():
         # 全局运行间隔
         # video_list = sdk.get_video_list()
         # for video in video_list:
-        #     logging.debug("create_video_report_days")
+        #     logging.log(15,"create_video_report_days")
         #     create_video_report(video, video_day=create_video_report_days)
 
         # if visible_target == 1:
         #     time.sleep(max(1, run_delay // 3))
-        #     logging.debug("update_video_list_visible")
+        #     logging.log(15,"update_video_list_visible")
         #     sdk.on_video_readcount_upper_do(
         #         max_video_count, update_video_list_visible
         #     )
 
         # if comment_target == 1:
         #     time.sleep(max(1, run_delay // 3))
-        #     logging.debug("send_ones_custom_video_comment")
+        #     logging.log(15,"send_ones_custom_video_comment")
         #     sdk.on_video_comment_do(send_ones_custom_video_comment)
 
         time.sleep(max(1, run_delay // 3))
-        logging.debug("send_ones_custom_private_msg")
+        logging.log(15, "send_ones_custom_private_msg")
         sdk.on_get_new_msg_do(send_ones_custom_private_msg)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        logging.debug(f"脚本崩溃: {e}")
+    except:
+        logging.log(15, "脚本崩溃: %s", traceback.format_exc())
         input("按任意键结束")
+        sys.exit(1)

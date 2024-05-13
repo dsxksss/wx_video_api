@@ -34,7 +34,15 @@ class WXVideoSDK:
     def __init__(self) -> None:
         self.login()
 
-    def request(self, url, ext_params={}, ext_data={}, ext_handler={}):
+    def request(
+        self,
+        url,
+        ext_params={},
+        ext_data={},
+        ext_handler={},
+        use_params=False,
+        use_cookies=False,
+    ):
         logging.log(15, "request url [%s]", url)
         # 获取当前时间戳
         timestamp = str(int(time.time() * 1000))
@@ -48,6 +56,7 @@ class WXVideoSDK:
             "scene": 7,
             "reqScene": 7,
         }
+
         params = {
             "token": self.token,
             "timestamp": timestamp,
@@ -66,26 +75,33 @@ class WXVideoSDK:
         for key, value in ext_handler.items():
             headers[key] = value
 
-        response = requests.post(url, headers=headers, data=data, params=params)
+        response: requests.Response = requests.post(
+            url,
+            headers=headers,
+            data=data,
+            params=params if use_params else None,
+            cookies=self.cookie if use_cookies else None,
+        )
+
+        if response.status_code >= 400:
+            msg = f"调用 [{url}] 失败!, response.status_code = [{response.status_code}], response.reason = {response.reason}"
+            logging.error(msg)
+            raise ValueError(msg)
 
         res = response.json()
 
         if res["errCode"] != 0:
-            input("按任意键关闭程序")
-            logging.error(
-                f"调用 [{url}] 失败!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
-            )
-            sys.exit(1)
+            msg = f"调用 [{url}] 失败!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
+            logging.error(msg)
+            raise ValueError(msg)
 
-        return res["data"]
+        return res["data"], response
 
     def login(self):
         self.cookie, is_can_login = self._get_cookie("self")
 
         if self.cookie is not None and is_can_login:
             self.get_auth_data()
-            self.get_x_wechat_uin()
-            self.get_login_cookie()
             return
 
         self.get_qrcode()
@@ -95,8 +111,8 @@ class WXVideoSDK:
             time.sleep(2)
 
     def get_qrcode(self):
-        res = self.request(WxVApiFields.Auth.auth_login_code)
-        self.token = res["token"]
+        data, _ = self.request(WxVApiFields.Auth.auth_login_code)
+        self.token = data["token"]
 
         if self.token:
             create_qc_code(
@@ -128,37 +144,18 @@ class WXVideoSDK:
         """创建会话
         return true if the session is created successfully
         """
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-        }
-        data = {
-            "token": self.token,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": "",
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
-        }
-        params = {
-            "token": self.token,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": "",
-            "scene": 7,
-            "reqScene": 7,
-        }
-        response = requests.post(
+        data, res = self.request(
             WxVApiFields.Auth.auth_login_status,
-            headers=headers,
-            data=data,
-            params=params,
+            ext_data={
+                "token": self.token,
+            },
+            ext_params={
+                "token": self.token,
+            },
+            use_params=True,
         )
-        res = response.json()
-        status = res["data"]["status"]
-        acct_status = res["data"]["acctStatus"]
+        status = data["status"]
+        acct_status = data["acctStatus"]
 
         msg_dict = {
             (0, 0): "未登录",
@@ -171,11 +168,11 @@ class WXVideoSDK:
 
         if status == 1 and acct_status == 1:
             logging.info(msg_dict[(status, acct_status)])
-            self.cookie = response.cookies.get_dict()
-            self._set_cookie("self", response.cookies)
+            self.cookie = res.cookies.get_dict()
+            self._set_cookie("self", res.cookies)
             if not self.cookie:
                 logging.error("Cookie获取失败")
-                return False
+                raise ValueError("Cookie获取失败")
 
             # 获取用户信息
             self.get_auth_data()
@@ -185,85 +182,34 @@ class WXVideoSDK:
         return False
 
     def get_auth_data(self):
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-        }
-        data = {
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": "",
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
-        }
+        data, _ = self.request(WxVApiFields.Auth.auth_data)
 
-        response = requests.post(
-            WxVApiFields.Auth.auth_data,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
-        )
-
-        res = response.json()
-
-        if res["errCode"] != 0:
-            logging.error("你的身份验证失败，请关闭程序重新扫描登录")
+        if data["errCode"] != 0:
+            msg = "你的身份验证失败，请关闭程序重新扫描登录"
             self.cache_handler.removeCache("self")
-            input("按任意键关闭程序")
-            sys.exit(1)
+            logging.error(msg)
+            raise ValueError(msg)
 
         # 保存获取的用户标识
-        self.finder_username = res["data"]["finderUser"]["finderUsername"]
-        self.nick_name = res["data"]["finderUser"]["nickname"]
+        self.finder_username = data["finderUser"]["finderUsername"]
+        self.nick_name = data["finderUser"]["nickname"]
+        self.get_x_wechat_uin()
+        self.get_login_cookie()
 
     def get_x_wechat_uin(self):
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-        }
-        data = {
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
-        }
-        response = requests.post(
+        data, _ = self.request(
             WxVApiFields.Helper.helper_upload_params,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
+            ext_data={
+                "_log_finder_id": self.finder_username,
+            },
         )
-        res = response.json()
-        if not res:
+        if not data:
             raise Exception("获取wechat_uin失败")
-        self.uin = str(res["data"]["uin"])
+        self.uin = str(data["uin"])
 
     def get_login_cookie(self):
-        timestamp = str(int(time.time() * 1000))
-        headers = {"X-Wechat-Uin": self.uin}
-        data = {
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
-        }
-
-        response = requests.post(
-            WxVApiFields.PrivateMsg.get_login_cookie,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
-        )
-        res = response.json()
-        cookie = res["data"]["cookie"]
+        data, _ = self.request(WxVApiFields.PrivateMsg.get_login_cookie)
+        cookie = data["cookie"]
         if not cookie:
             logging.error("登录cookie获取失败")
 
@@ -272,10 +218,6 @@ class WXVideoSDK:
     def get_video_list(
         self, unread: bool = False, need_comment_count: bool = True
     ) -> List[Any]:
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-        }
         data = {
             "pageSize": 10,
             "currentPage": 1,
@@ -283,26 +225,14 @@ class WXVideoSDK:
             "userpageType": 3,
             "needAllCommentCount": need_comment_count,
             "forMcn": False,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        response = requests.post(
-            WxVApiFields.Post.post_list,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
-        )
-        res = response.json()
-        if not res["data"]["list"]:
+        data, _ = self.request(WxVApiFields.Post.post_list, ext_data=data)
+
+        if not data["list"]:
             logging.error("视频列表获取失败, 列表可能为空或者数据问题")
             return []
 
-        video_list = res["data"]["list"]
+        video_list = data["list"]
 
         return video_list
 
