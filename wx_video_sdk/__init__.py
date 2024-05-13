@@ -39,9 +39,14 @@ class WXVideoSDK:
         url,
         ext_params={},
         ext_data={},
-        ext_handler={},
+        ext_headers={},
         use_params=False,
+        use_json_headers=False,
     ):
+        prefix_url = (
+            "https://channels.weixin.qq.com/cgi-bin/mmfinderassistant-bin" + url
+        )
+
         logging.log(15, "request url [%s]", url)
         # 获取当前时间戳
         timestamp = str(int(time.time() * 1000))
@@ -49,10 +54,13 @@ class WXVideoSDK:
             "X-Wechat-Uin": self.uin,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
         }
+        if use_json_headers:
+            headers["Content-Type"] = "application/json"
+
         data = {
             "timestamp": timestamp,
             "_log_finder_uin": "",
-            "_log_finder_id": "",
+            "_log_finder_id": self.finder_username,
             "rawKeyBuff": None,
             "pluginSessionId": None,
             "scene": 7,
@@ -74,29 +82,28 @@ class WXVideoSDK:
         for key, value in ext_data.items():
             data[key] = value
 
-        for key, value in ext_handler.items():
+        for key, value in ext_headers.items():
             headers[key] = value
 
         response: requests.Response = requests.post(
-            url,
+            prefix_url,
             headers=headers,
             data=data,
             params=params if use_params else None,
-            cookies=self.cookie
+            cookies=self.cookie,
         )
 
         if response.status_code >= 400:
-            msg = f"调用 [{url}] 失败!, response.status_code = [{response.status_code}], response.reason = {response.reason}"
+            msg = f"请求 [{url}] 失败!, response.status_code = [{response.status_code}], response.reason = {response.reason}"
             logging.error(msg)
             raise ValueError(msg)
 
         res = response.json()
 
         if res["errCode"] != 0:
-            msg = f"调用 [{url}] 失败!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
-            logging.error(msg)
-            raise ValueError(msg)
-        
+            msg = f"调用 [{url}] 发生网络问题!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
+            logging.warning(msg)
+
         return res["data"], response
 
     def login(self):
@@ -199,12 +206,7 @@ class WXVideoSDK:
         self.get_login_cookie()
 
     def get_x_wechat_uin(self):
-        data, _ = self.request(
-            WxVApiFields.Helper.helper_upload_params,
-            ext_data={
-                "_log_finder_id": self.finder_username,
-            }
-        )
+        data, _ = self.request(WxVApiFields.Helper.helper_upload_params)
         if not data:
             raise Exception("获取wechat_uin失败")
         self.uin = str(data["uin"])
@@ -241,62 +243,32 @@ class WXVideoSDK:
     def get_comment_list(
         self, export_id, video, cb: Any = lambda comment: None
     ) -> List[Any]:
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
+
         data = {
             "lastBuff": "",
             "exportId": export_id,
             "commentSelection": False,
             "forMcn": False,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        response = requests.post(
-            WxVApiFields.Comment.comment_list,
-            headers=headers,
-            cookies=self.cookie,
-            data=json.dumps(data),
-        )
-        res = response.json()
-        if not res["data"]["comment"]:
-            logging.error("评论获取失败, 列表可能为空或者数据问题")
+        data, _ = self.request(WxVApiFields.Comment.comment_list, ext_data=data)
+
+        if not data["comment"]:
+            logging.error("评论列表可能为空或者数据(如果觉得不重要即可忽略)")
             return []
 
-        return res["data"]["comment"]
+        return data["comment"]
 
     def change_video_visible(self, object_id: str, visible_type: int) -> bool:
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
         data = {
             "objectId": object_id,
-            "timestamp": timestamp,
             "visibleType": visible_type,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        response = requests.post(
+        data, _ = self.request(
             WxVApiFields.Post.post_update_visible,
-            headers=headers,
-            cookies=self.cookie,
-            data=json.dumps(data),
+            use_json_headers=True,
+            ext_data=data,
         )
-        res = response.json()
-        if res["data"]["errorCode"] != 0:
+        if data["errorCode"] != 0:
             return False
 
         return True
@@ -306,11 +278,7 @@ class WXVideoSDK:
         self, session_id, from_username, to_username, msg_content: str
     ):
         myUUID = str(uuid.uuid4())
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
+
         data = {
             "msgPack": {
                 "sessionId": session_id,
@@ -320,28 +288,16 @@ class WXVideoSDK:
                 "textMsg": {"content": msg_content},
                 "cliMsgId": myUUID,
             },
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        response = requests.post(
+        data, _ = self.request(
             WxVApiFields.PrivateMsg.send_private_msg,
-            headers=headers,
-            data=json.dumps(data),
-            cookies=self.cookie,
+            use_json_headers=True,
+            ext_data=data,
         )
-        res = response.json()
-        logging.log(15, res)
+        logging.log(15, data)
 
     def upload_media_info(self, from_username, to_username, file_path) -> Any:
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
+
         # 生成AES密钥并且转换为 base64 格式以便于存储和传输
         aes_key = base64.b64encode(get_random_bytes(32)).decode()
         with open(file_path, "rb") as file:
@@ -352,7 +308,6 @@ class WXVideoSDK:
             img_msg = {}
 
             for chunk in range(chunks):
-                timestamp = str(int(time.time() * 1000))
                 file.seek(chunk * chunk_size)
                 data = file.read(chunk_size)
 
@@ -369,23 +324,14 @@ class WXVideoSDK:
                     "md5": file_md5,
                     "mediaSize": file_size,
                     "mediaType": 3,
-                    "pluginSessionId": None,
-                    "rawKeyBuff": None,
-                    "reqScene": 7,
-                    "scene": 7,
-                    "timestamp": timestamp,
-                    "_log_finder_id": self.finder_username,
-                    "_log_finder_uin": "",
                 }
 
-                response = requests.post(
+                data, _ = self.request(
                     WxVApiFields.PrivateMsg.upload_media_info,
-                    headers=headers,
-                    data=json.dumps(data),
-                    cookies=self.cookie,
+                    use_json_headers=True,
+                    ext_data=data,
                 )
-                res = response.json()
-                img_msg = res["data"]["imgMsg"]
+                img_msg = data["imgMsg"]
 
             return img_msg
 
@@ -397,11 +343,7 @@ class WXVideoSDK:
             from_username=from_username, to_username=to_username, file_path=img_path
         )
         myUUID = str(uuid.uuid4())
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
+
         data = {
             "msgPack": {
                 "sessionId": session_id,
@@ -410,32 +352,18 @@ class WXVideoSDK:
                 "msgType": 3,
                 "imgMsg": img_msg,
                 "cliMsgId": myUUID,
-            },
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
+            }
         }
-        response = requests.post(
+        data, _ = self.request(
             WxVApiFields.PrivateMsg.send_private_msg,
-            headers=headers,
-            data=json.dumps(data),
-            cookies=self.cookie,
+            use_json_headers=True,
+            ext_data=data,
         )
-        res = response.json()
-        logging.log(15, res)
+        logging.log(15, data)
 
     # 回复视频评论
     def send_comment(self, export_id, comment, comment_content: str):
         myUUID = str(uuid.uuid4())
-        timestamp = str(int(time.time() * 1000))
-        headers = {
-            "X-Wechat-Uin": self.uin,
-            "Content-Type": "application/json",
-        }
         data = {
             "replyCommentId": comment["commentId"],
             "content": comment_content,
@@ -443,68 +371,32 @@ class WXVideoSDK:
             "rootCommentId": comment["commentId"],
             "comment": comment,
             "exportId": export_id,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        requests.post(
+        self.request(
             WxVApiFields.Comment.create_comment,
-            headers=headers,
-            cookies=self.cookie,
-            data=json.dumps(data),
+            use_json_headers=True,
+            ext_data=data,
         )
 
     #  接收未读的私信消息
     def get_new_msgs(self) -> List[Any]:
-        timestamp = str(int(time.time() * 1000))
-        headers = {"X-Wechat-Uin": self.uin}
         data = {
             "cookie": self.login_cookie,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
         }
-        response = requests.post(
-            WxVApiFields.PrivateMsg.get_new_msg,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
-        )
-        res = response.json()
-        logging.log(15, res)
-        msgs = res["data"]["msg"]
+        data, _ = self.request(WxVApiFields.PrivateMsg.get_new_msg, ext_data=data)
+        logging.log(15, data)
+        msgs = data["msg"]
         return msgs
 
     #  接收历史私信消息
     def get_history_msgs(self) -> List[Any]:
-        timestamp = str(int(time.time() * 1000))
-        headers = {"X-Wechat-Uin": self.uin}
-        data = {
-            "cookie": self.login_cookie,
-            "timestamp": timestamp,
-            "_log_finder_uin": "",
-            "_log_finder_id": self.finder_username,
-            "rawKeyBuff": None,
-            "pluginSessionId": None,
-            "scene": 7,
-            "reqScene": 7,
-        }
-        response = requests.post(
+        data, _ = self.request(
             WxVApiFields.PrivateMsg.get_history_msg,
-            headers=headers,
-            data=data,
-            cookies=self.cookie,
+            ext_data={
+                "cookie": self.login_cookie,
+            },
         )
-        res = response.json()
-        msgs = res["data"]["msg"]
+        msgs = data["msg"]
         return msgs
 
     def on_video_readcount_upper_do(
