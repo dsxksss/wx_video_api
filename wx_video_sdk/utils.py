@@ -1,8 +1,10 @@
+import argparse
 import hashlib
 import logging
 import os
 import time
 from typing import Any
+from sys import argv
 from qrcode.main import QRCode
 from datetime import datetime, timedelta
 
@@ -71,8 +73,20 @@ def mkdir_if_not_exist(path: str) -> None:
         os.makedirs(path)
 
 
+def is_dev():
+    parser = argparse.ArgumentParser(description="Chembl Command Line Tool")
+    parser.add_argument(
+        "-d",
+        action="store_true",
+        default=False,
+        help="是否开启开发模式",
+    )
+    parsed_args = parser.parse_args(argv[1:])
+    return parsed_args.d
+
 def setLoggingDefaultConfig() -> None:
     Log_level = 15
+    logging.addLevelName(15, "WX_VIDEIO_SDK_DEBUG")
 
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler("./wx_video_sdk.log", encoding="utf-8")

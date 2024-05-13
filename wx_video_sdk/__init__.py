@@ -41,12 +41,14 @@ class WXVideoSDK:
         ext_data={},
         ext_handler={},
         use_params=False,
-        use_cookies=False,
     ):
         logging.log(15, "request url [%s]", url)
         # 获取当前时间戳
         timestamp = str(int(time.time() * 1000))
-        headers = {"X-Wechat-Uin": self.uin}
+        headers = {
+            "X-Wechat-Uin": self.uin,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        }
         data = {
             "timestamp": timestamp,
             "_log_finder_uin": "",
@@ -80,7 +82,7 @@ class WXVideoSDK:
             headers=headers,
             data=data,
             params=params if use_params else None,
-            cookies=self.cookie if use_cookies else None,
+            cookies=self.cookie
         )
 
         if response.status_code >= 400:
@@ -94,7 +96,7 @@ class WXVideoSDK:
             msg = f"调用 [{url}] 失败!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
             logging.error(msg)
             raise ValueError(msg)
-
+        
         return res["data"], response
 
     def login(self):
@@ -182,9 +184,9 @@ class WXVideoSDK:
         return False
 
     def get_auth_data(self):
-        data, _ = self.request(WxVApiFields.Auth.auth_data)
+        data, res = self.request(WxVApiFields.Auth.auth_data)
 
-        if data["errCode"] != 0:
+        if res.json()["errCode"] != 0:
             msg = "你的身份验证失败，请关闭程序重新扫描登录"
             self.cache_handler.removeCache("self")
             logging.error(msg)
@@ -201,7 +203,7 @@ class WXVideoSDK:
             WxVApiFields.Helper.helper_upload_params,
             ext_data={
                 "_log_finder_id": self.finder_username,
-            },
+            }
         )
         if not data:
             raise Exception("获取wechat_uin失败")

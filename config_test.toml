@@ -7,7 +7,7 @@
 # 运行延迟间隔，值越小脚本处理速度越快，不建议小于1，默认4
 run_delay = 4
 # 设置最近输出几天之内要查看的视频数据(按该视频创建的时间)，默认2
-create_video_report_days = 2
+create_video_report_days = 999
 
 
 # 操作配置
