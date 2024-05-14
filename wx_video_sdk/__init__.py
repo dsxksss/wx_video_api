@@ -1,23 +1,19 @@
 import base64
+import json
 import logging
-import sys
 from Crypto.Random import get_random_bytes
 from requests.sessions import RequestsCookieJar
-import json
 import os
 import time
 from typing import Any, Dict, List
 import uuid
 import requests
 from wx_video_sdk.cache import CacheHandler
-from wx_video_sdk.utils import (
-    create_qc_code,
-    get_sha256_hash_of_file,
-    setLoggingDefaultConfig,
-)
+from wx_video_sdk.utils import create_qc_code, get_sha256_hash_of_file
 from wx_video_sdk.api_feilds import WxVApiFields
 
 CACHE_COOKIE_FIELD = "CACHE_COOKIES"
+CACHE_AUTH_FIELD = "CACHE_AUTH"
 
 
 class WXVideoSDK:
@@ -88,7 +84,7 @@ class WXVideoSDK:
         response: requests.Response = requests.post(
             prefix_url,
             headers=headers,
-            data=data,
+            data=json.dumps(data) if use_json_headers else data,
             params=params if use_params else None,
             cookies=self.cookie,
         )
@@ -101,8 +97,16 @@ class WXVideoSDK:
         res = response.json()
 
         if res["errCode"] != 0:
+
+            if url == WxVApiFields.Auth.auth_data:
+                self.cache_handler.removeCache("self")
+                self.cache_handler.removeCache("auth_data")
+                msg = "你的身份验证失败，请关闭程序重新扫描登录"
+                logging.error(msg)
+
             msg = f"调用 [{url}] 发生网络问题!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
-            logging.warning(msg)
+            logging.error(msg)
+            raise ValueError(msg)
 
         return res["data"], response
 
@@ -191,33 +195,42 @@ class WXVideoSDK:
         return False
 
     def get_auth_data(self):
-        data, res = self.request(WxVApiFields.Auth.auth_data)
-
-        if res.json()["errCode"] != 0:
-            msg = "你的身份验证失败，请关闭程序重新扫描登录"
-            self.cache_handler.removeCache("self")
-            logging.error(msg)
-            raise ValueError(msg)
 
         # 保存获取的用户标识
-        self.finder_username = data["finderUser"]["finderUsername"]
-        self.nick_name = data["finderUser"]["nickname"]
-        self.get_x_wechat_uin()
-        self.get_login_cookie()
+        if not self.cache_handler.isExists("auth_data"):
+            data, _ = self.request(WxVApiFields.Auth.auth_data)
+            self.finder_username = data["finderUser"]["finderUsername"]
+            self.nick_name = data["finderUser"]["nickname"]
+            self.uin = self.get_x_wechat_uin()
+            self.login_cookie = self.get_login_cookie()
+            auth_data_dict = {
+                "finder_username": self.finder_username,
+                "nick_name": self.nick_name,
+                "uin": self.uin,
+                "login_cookie": self.login_cookie,
+            }
+            self.cache_handler.saveCache("auth_data", CACHE_AUTH_FIELD, auth_data_dict)
+            return
 
-    def get_x_wechat_uin(self):
+        auth_data_dict = self.cache_handler.getCache("auth_data")[CACHE_AUTH_FIELD]
+        self.finder_username = auth_data_dict["finder_username"]
+        self.nick_name = auth_data_dict["nick_name"]
+        self.uin = auth_data_dict["uin"]
+        self.login_cookie = auth_data_dict["login_cookie"]
+
+    def get_x_wechat_uin(self) -> str:
         data, _ = self.request(WxVApiFields.Helper.helper_upload_params)
         if not data:
             raise Exception("获取wechat_uin失败")
-        self.uin = str(data["uin"])
+        return str(data["uin"])
 
-    def get_login_cookie(self):
+    def get_login_cookie(self) -> str:
         data, _ = self.request(WxVApiFields.PrivateMsg.get_login_cookie)
         cookie = data["cookie"]
         if not cookie:
             logging.error("登录cookie获取失败")
 
-        self.login_cookie = cookie
+        return cookie
 
     def get_video_list(
         self, unread: bool = False, need_comment_count: bool = True
@@ -253,7 +266,7 @@ class WXVideoSDK:
         data, _ = self.request(WxVApiFields.Comment.comment_list, ext_data=data)
 
         if not data["comment"]:
-            logging.error("评论列表可能为空或者数据(如果觉得不重要即可忽略)")
+            logging.log(15, "评论列表可能为空或者数据(如果觉得不重要即可忽略)")
             return []
 
         return data["comment"]
@@ -289,6 +302,7 @@ class WXVideoSDK:
                 "cliMsgId": myUUID,
             },
         }
+
         data, _ = self.request(
             WxVApiFields.PrivateMsg.send_private_msg,
             use_json_headers=True,
@@ -397,6 +411,7 @@ class WXVideoSDK:
             },
         )
         msgs = data["msg"]
+        print(msgs)
         return msgs
 
     def on_video_readcount_upper_do(

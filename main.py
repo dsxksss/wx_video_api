@@ -60,7 +60,6 @@ def main():
     config_path = "./config_test.toml" if is_dev() else "./config.toml"
 
     setLoggingDefaultConfig()
-    logging.info("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
     (
         run_delay,
         create_video_report_days,
@@ -77,8 +76,9 @@ def main():
         auto_send_private_msg,
         auto_send_img_path,
     ) = read_config(config_path)
-    
+
     logging.info(f"配置文件 [ {config_path} ] 已载入.")
+    logging.info("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
 
     sdk = WXVideoSDK()
 
@@ -147,7 +147,7 @@ def main():
         # 全局运行间隔
         video_list = sdk.get_video_list()
         for video in video_list:
-            logging.log(15,"create_video_report_days")
+            logging.log(15, "create_video_report_days")
             create_video_report(video, video_day=create_video_report_days)
 
         # if visible_target == 1:

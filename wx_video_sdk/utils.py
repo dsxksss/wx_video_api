@@ -91,7 +91,10 @@ def setLoggingDefaultConfig() -> None:
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler("./wx_video_sdk.log", encoding="utf-8")
 
-    console_handler.setLevel(Log_level)
+    if is_dev():
+        console_handler.setLevel(Log_level)
+    else:
+        console_handler.setLevel(logging.INFO)
     file_handler.setLevel(Log_level)
 
     console_format = logging.Formatter(
