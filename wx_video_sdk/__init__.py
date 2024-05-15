@@ -97,14 +97,11 @@ class WXVideoSDK:
         res = response.json()
 
         if res["errCode"] != 0:
-
-            if url == WxVApiFields.Auth.auth_data:
-                self.cache_handler.removeCache("self")
-                self.cache_handler.removeCache("auth_data")
-                msg = "你的身份验证失败，请关闭程序重新扫描登录"
-                logging.error(msg)
-
+            self.cache_handler.removeCache("self")
+            self.cache_handler.removeCache("auth_data")
+            msg = "你的身份验证失败，请关闭程序重新扫描登录"
             msg = f"调用 [{url}] 发生网络问题!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
+            logging.error(msg)
             logging.error(msg)
             raise ValueError(msg)
 

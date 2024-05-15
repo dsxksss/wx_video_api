@@ -8,6 +8,7 @@ class WxVApiFields:
     class Helper:
         prefix = "/helper"
         helper_upload_params = prefix + "/helper_upload_params"
+        hepler_merlin_mmdata = prefix + "/hepler_merlin_mmdata"
 
     class Comment:
         prefix = "/comment"
