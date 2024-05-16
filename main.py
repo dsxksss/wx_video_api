@@ -140,10 +140,13 @@ def main():
                     img_path=auto_send_img_path,
                 )
             return True
-        else:
-            return False
+
+        return False
 
     while True:
+        # 检查是否session是否断开
+        sdk.hepler_merlin_mmdata()
+
         # 全局运行间隔
         video_list = sdk.get_video_list()
         for video in video_list:
@@ -174,3 +177,4 @@ if __name__ == "__main__":
         logging.log(15, "脚本崩溃: %s", traceback.format_exc())
         input("按任意键结束")
         sys.exit(1)
+

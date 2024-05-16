@@ -38,8 +38,8 @@ auto_send_comment_text = "你好我是config toml test 评论回复"
 # 是否开启消息发送(0:关闭, 1:开启)，默认1
 private_msg_target = 1
 # 是否开启图片发送(0:关闭, 1:开启)，默认1
-private_img_target = 1
+private_img_target = 0
 # 自动回复私信文字内容
-auto_send_private_msg = "你好我是私信的消息"
+auto_send_private_msg = "你好我是私信的消息 v1.0"
 # 自动回复私信图片文件路径
 auto_send_img_path = "./icon.png"

@@ -3,10 +3,12 @@ import hashlib
 import logging
 import os
 import time
-from typing import Any
+from typing import Any, Dict
 from sys import argv
 from qrcode.main import QRCode
 from datetime import datetime, timedelta
+
+from wx_video_sdk.api_feilds import WxVApiFields
 
 
 # 生成二维码
@@ -84,6 +86,7 @@ def is_dev():
     parsed_args = parser.parse_args(argv[1:])
     return parsed_args.d
 
+
 def setLoggingDefaultConfig() -> None:
     Log_level = 15
     logging.addLevelName(15, "WX_VIDEIO_SDK_DEBUG")
@@ -142,6 +145,14 @@ def create_video_report(video: Any, video_day: int):
             w.write(f"推荐数: {video_favorite_count}\n")
             w.write(f"转发数: {video_forward_count}\n")
             w.write(f"评论数: {video_comment_count}\n")
+
+
+def create_msg_tip(url: str, data: Dict) -> str:
+    if url == WxVApiFields.PrivateMsg.send_private_msg:
+        if data["msgPack"]["msgType"] == 3:
+            return "/private-msg/send-private-img"
+        return "/private-msg/send-private-msg"
+    return url
 
 
 if __name__ == "__main__":

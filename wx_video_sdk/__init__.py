@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 import uuid
 import requests
 from wx_video_sdk.cache import CacheHandler
-from wx_video_sdk.utils import create_qc_code, get_sha256_hash_of_file
+from wx_video_sdk.utils import create_msg_tip, create_qc_code, get_sha256_hash_of_file
 from wx_video_sdk.api_feilds import WxVApiFields
 
 CACHE_COOKIE_FIELD = "CACHE_COOKIES"
@@ -39,11 +39,14 @@ class WXVideoSDK:
         use_params=False,
         use_json_headers=False,
     ):
+        # 为了可读性，在同url但是不同作用的情况下用来输出日志做区分
+        msg_tip = create_msg_tip(url,ext_data)
+
         prefix_url = (
             "https://channels.weixin.qq.com/cgi-bin/mmfinderassistant-bin" + url
         )
 
-        logging.log(15, "request url [%s]", url)
+        logging.log(15, "request url [%s]", msg_tip)
         # 获取当前时间戳
         timestamp = str(int(time.time() * 1000))
         headers = {
@@ -90,18 +93,21 @@ class WXVideoSDK:
         )
 
         if response.status_code >= 400:
-            msg = f"请求 [{url}] 失败!, response.status_code = [{response.status_code}], response.reason = {response.reason}"
+            msg = f"请求 [{msg_tip}] 失败!, response.status_code = [{response.status_code}], response.reason = {response.reason}"
             logging.error(msg)
             raise ValueError(msg)
 
         res = response.json()
 
         if res["errCode"] != 0:
-            self.cache_handler.removeCache("self")
-            self.cache_handler.removeCache("auth_data")
-            msg = "你的身份验证失败，请关闭程序重新扫描登录"
-            msg = f"调用 [{url}] 发生网络问题!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
-            logging.error(msg)
+            if url == WxVApiFields.Helper.hepler_merlin_mmdata:
+                self.cache_handler.removeCache("self")
+                self.cache_handler.removeCache("auth_data")
+                msg = "你的身份验证失败，请关闭程序重新扫描登录"
+                logging.error(msg)
+                raise ValueError(msg)
+
+            msg = f"调用 [{msg_tip}] 发生网络问题!,errCode = [{res['errCode']}], errMsg = {res['errMsg']}"
             logging.error(msg)
             raise ValueError(msg)
 
@@ -190,6 +196,49 @@ class WXVideoSDK:
 
         logging.info(msg_dict[(status, acct_status)])
         return False
+
+    def hepler_merlin_mmdata(self):
+        time10 = time.time()
+        time13 = int(time.time() * 1000)
+        data = {
+            "id": 23865,
+            "data": {
+                "12": "",
+                "13": "",
+                "14": "",
+                "15": "",
+                "16": "",
+                "17": time10,
+                "18": time10,
+                "19": 1,
+                "20": "",
+                "21": 2,
+                "22": uuid.uuid4(),
+                "23": "",
+                "24": time13,
+                "25": "",
+                "26": 0,
+                "27": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+                "28": "",
+                "29": "",
+                "30": "",
+                "31": "LoginForIframe",
+                "32": "",
+                "33": uuid.uuid4(),
+                "34": "",
+                "35": "",
+                "36": 1,
+                "37": "{}",
+                "38": "",
+                "39": "{}",
+                "40": "pageEnter",
+                "41": "{}",
+                "42": '{"screenHeight":1032;"screenWidth":1920;"clientHeight":0;"clientWidth":0}',
+                "43": "",
+            },
+            "_log_finder_id": "",
+        }
+        self.request(WxVApiFields.Helper.hepler_merlin_mmdata, ext_data=data)
 
     def get_auth_data(self):
 
@@ -285,9 +334,9 @@ class WXVideoSDK:
 
     # 回复私信消息
     def send_private_msg(
-        self, session_id, from_username, to_username, msg_content: str
+        self, session_id, from_username: str, to_username: str, msg_content: str
     ):
-        myUUID = str(uuid.uuid4())
+        uid = str(uuid.uuid4())
 
         data = {
             "msgPack": {
@@ -296,7 +345,7 @@ class WXVideoSDK:
                 "toUsername": to_username,
                 "msgType": 1,
                 "textMsg": {"content": msg_content},
-                "cliMsgId": myUUID,
+                "cliMsgId": uid,
             },
         }
 
@@ -353,7 +402,7 @@ class WXVideoSDK:
         img_msg = self.upload_media_info(
             from_username=from_username, to_username=to_username, file_path=img_path
         )
-        myUUID = str(uuid.uuid4())
+        uid = str(uuid.uuid4())
 
         data = {
             "msgPack": {
@@ -362,7 +411,7 @@ class WXVideoSDK:
                 "toUsername": to_username,
                 "msgType": 3,
                 "imgMsg": img_msg,
-                "cliMsgId": myUUID,
+                "cliMsgId": uid,
             }
         }
         data, _ = self.request(
@@ -374,11 +423,11 @@ class WXVideoSDK:
 
     # 回复视频评论
     def send_comment(self, export_id, comment, comment_content: str):
-        myUUID = str(uuid.uuid4())
+        uid = str(uuid.uuid4())
         data = {
             "replyCommentId": comment["commentId"],
             "content": comment_content,
-            "clientId": myUUID,
+            "clientId": uid,
             "rootCommentId": comment["commentId"],
             "comment": comment,
             "exportId": export_id,
