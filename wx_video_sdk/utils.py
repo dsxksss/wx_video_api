@@ -92,7 +92,10 @@ def setLoggingDefaultConfig() -> None:
     logging.addLevelName(15, "WX_VIDEIO_SDK_DEBUG")
 
     console_handler = logging.StreamHandler()
-    file_handler = logging.FileHandler("./wx_video_sdk.log", encoding="utf-8")
+    file_handler = logging.FileHandler(
+        f"./wx_video_sdk-{parse_timestamp(float(time.time()),'%Y-%m-%d-%H-%M-%S')}.log",
+        encoding="utf-8",
+    )
 
     if is_dev():
         console_handler.setLevel(Log_level)
