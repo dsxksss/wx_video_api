@@ -35,6 +35,7 @@ def read_config(file_path):
     # 获取auto_send_private_msg部分的值
     private_msg_target = config["auto_send_private_msg"]["private_msg_target"]
     private_img_target = config["auto_send_private_msg"]["private_img_target"]
+    auto_send_msg_days = config["auto_send_private_msg"]["auto_send_msg_days"]
     auto_send_private_msg = config["auto_send_private_msg"]["auto_send_private_msg"]
     auto_send_img_path = config["auto_send_private_msg"]["auto_send_img_path"]
 
@@ -51,6 +52,7 @@ def read_config(file_path):
         auto_send_comment_text,
         private_msg_target,
         private_img_target,
+        auto_send_msg_days,
         auto_send_private_msg,
         auto_send_img_path,
     )
@@ -73,6 +75,7 @@ def main():
         auto_send_comment_text,
         private_msg_target,
         private_img_target,
+        auto_send_msg_days,
         auto_send_private_msg,
         auto_send_img_path,
     ) = read_config(config_path)
@@ -121,9 +124,18 @@ def main():
                     sdk.comment_already_sender.add(comment["commentId"])
 
     def send_ones_custom_private_msg(
-        sdk: WXVideoSDK, session_id: str, from_username: str, to_username: str
+        sdk: WXVideoSDK,
+        session_id: str,
+        from_username: str,
+        to_username: str,
+        msg_ts: int,
     ) -> bool:
-        if session_id not in sdk.private_already_sender:
+
+        if session_id not in sdk.private_already_sender and is_within_days(
+            days=auto_send_msg_days,
+            new_timestamp=round(float(time.time())),
+            old_timestamp=float(msg_ts),
+        ):
             if private_msg_target == 1:
                 sdk.send_private_msg(
                     session_id=session_id,
@@ -153,17 +165,15 @@ def main():
             logging.log(15, "create_video_report_days")
             create_video_report(video, video_day=create_video_report_days)
 
-        # if visible_target == 1:
-        #     time.sleep(max(1, run_delay // 3))
-        #     logging.log(15,"update_video_list_visible")
-        #     sdk.on_video_readcount_upper_do(
-        #         max_video_count, update_video_list_visible
-        #     )
+        if visible_target == 1:
+            time.sleep(max(1, run_delay // 3))
+            logging.log(15, "update_video_list_visible")
+            sdk.on_video_readcount_upper_do(max_video_count, update_video_list_visible)
 
-        # if comment_target == 1:
-        #     time.sleep(max(1, run_delay // 3))
-        #     logging.log(15,"send_ones_custom_video_comment")
-        #     sdk.on_video_comment_do(send_ones_custom_video_comment)
+        if comment_target == 1:
+            time.sleep(max(1, run_delay // 3))
+            logging.log(15, "send_ones_custom_video_comment")
+            sdk.on_video_comment_do(send_ones_custom_video_comment)
 
         time.sleep(max(1, run_delay // 3))
         logging.log(15, "send_ones_custom_private_msg")
@@ -177,4 +187,3 @@ if __name__ == "__main__":
         logging.log(15, "脚本崩溃: %s", traceback.format_exc())
         input("按任意键结束")
         sys.exit(1)
-

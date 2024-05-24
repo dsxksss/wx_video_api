@@ -6,7 +6,7 @@
 [run_config]
 # 运行延迟间隔，值越小脚本处理速度越快，不建议小于1，默认4
 run_delay = 4
-# 设置最近输出几天之内要查看的视频数据(按该视频创建的时间)，默认2
+# 设置最近输出几天之内要查看的视频数据(按该视频创建的时间)，默认2，设置成0则不会处理
 create_video_report_days = 2
 
 
@@ -15,7 +15,7 @@ create_video_report_days = 2
 [auto_video_visible]
 # 是否开启自动修改视频可见功能(0:关闭, 1:开启)，默认1
 visible_target = 1
-# 设置最近几天之内要处理的视频(按该视频创建的时间)，默认2
+# 设置最近几天之内要处理的视频(按该视频创建的时间)，默认2，设置成0则不会处理
 auto_video_visible_days = 2
 # 设置当浏览量大于多少要处理的视频(和days配置配合使用)，默认5500
 max_video_count = 5500
@@ -28,7 +28,7 @@ video_visible_type = 3
 comment_target = 1
 # 回复自己的评论(0:关闭, 1:开启)，默认0
 self_comment_target = 0
-# 设置最近几天之内要处理的评论(按该评论创建的时间)，默认2
+# 设置最近几天之内要处理的评论(按该评论创建的时间)，默认2，设置成0则不会处理
 auto_send_comment_days = 2
 # 自动回复评论内容
 auto_send_comment_text = "你好我是config toml test 评论回复"
@@ -39,6 +39,8 @@ auto_send_comment_text = "你好我是config toml test 评论回复"
 private_msg_target = 1
 # 是否开启图片发送(0:关闭, 1:开启)，默认1
 private_img_target = 1
+# 设置最近几天之内要处理的私信(按该私信创建的时间)，默认1，设置成0则不会处理
+auto_send_msg_days = 1
 # 自动回复私信文字内容
 auto_send_private_msg = "你好我是私信的消息"
 # 自动回复私信图片文件路径

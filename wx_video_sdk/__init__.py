@@ -40,7 +40,7 @@ class WXVideoSDK:
         use_json_headers=False,
     ):
         # 为了可读性，在同url但是不同作用的情况下用来输出日志做区分
-        msg_tip = create_msg_tip(url,ext_data)
+        msg_tip = create_msg_tip(url, ext_data)
 
         prefix_url = (
             "https://channels.weixin.qq.com/cgi-bin/mmfinderassistant-bin" + url
@@ -512,6 +512,7 @@ class WXVideoSDK:
                     msg["sessionId"],
                     msg["toUsername"],
                     msg["fromUsername"],
+                    msg["ts"],
                 )
                 if is_sended:
                     self.private_already_sender.add(msg["sessionId"])
