@@ -457,7 +457,6 @@ class WXVideoSDK:
             },
         )
         msgs = data["msg"]
-        print(msgs)
         return msgs
 
     def on_video_readcount_upper_do(
