@@ -125,7 +125,6 @@ class WXVideoSDK:
         return res["data"], response
 
     def cache_login(self):
-        print("cache_login")
         self.cookie, is_can_login = self._get_cookie("self")
         if is_can_login:
             self.get_auth_data()
@@ -135,7 +134,6 @@ class WXVideoSDK:
         self.login()
 
     def login(self):
-        print("login")
         is_can_login = False
         self.get_qrcode()
         while not is_can_login:
