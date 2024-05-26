@@ -25,10 +25,21 @@ class WXVideoSDK:
     finder_username = ""
     private_already_sender = set()
     comment_already_sender = set()
-    cache_handler: CacheHandler = CacheHandler("./wx_video_sdk_cache.json")
 
-    def __init__(self) -> None:
-        self.login()
+    def __init__(self, cache_file_name: str) -> None:
+        self.cache_name = cache_file_name.split("s/")[1].split(".")[0]
+        self.is_use_cache_login = False
+
+        if self.cache_name == "None" or self.cache_name == "扫码登录新账号":
+            if self.cache_name == "None":
+                logging.info("没有找到已经添加的账号缓存，请扫描登录")
+
+            self.login()
+            return
+
+        self.is_use_cache_login = True
+        self.cache_handler = CacheHandler(cache_file_name)
+        self.cache_login()
 
     def request(
         self,
@@ -113,15 +124,20 @@ class WXVideoSDK:
 
         return res["data"], response
 
-    def login(self):
+    def cache_login(self):
+        print("cache_login")
         self.cookie, is_can_login = self._get_cookie("self")
-
-        if self.cookie is not None and is_can_login:
+        if is_can_login:
             self.get_auth_data()
             return
 
-        self.get_qrcode()
+        logging.error("不可使用缓存登录，请重新扫描登录")
+        self.login()
 
+    def login(self):
+        print("login")
+        is_can_login = False
+        self.get_qrcode()
         while not is_can_login:
             is_can_login = self.create_session()
             time.sleep(2)
@@ -185,7 +201,8 @@ class WXVideoSDK:
         if status == 1 and acct_status == 1:
             logging.info(msg_dict[(status, acct_status)])
             self.cookie = res.cookies.get_dict()
-            self._set_cookie("self", res.cookies)
+            self.res_cookies = res.cookies
+
             if not self.cookie:
                 logging.error("Cookie获取失败")
                 raise ValueError("Cookie获取失败")
@@ -243,7 +260,7 @@ class WXVideoSDK:
     def get_auth_data(self):
 
         # 保存获取的用户标识
-        if not self.cache_handler.isExists("auth_data"):
+        if not self.is_use_cache_login:
             data, _ = self.request(WxVApiFields.Auth.auth_data)
             self.finder_username = data["finderUser"]["finderUsername"]
             self.nick_name = data["finderUser"]["nickname"]
@@ -255,6 +272,10 @@ class WXVideoSDK:
                 "uin": self.uin,
                 "login_cookie": self.login_cookie,
             }
+            self.cache_handler: CacheHandler = CacheHandler(
+                f"./caches/{self.nick_name}.json"
+            )
+            self._set_cookie("self", self.res_cookies)
             self.cache_handler.saveCache("auth_data", CACHE_AUTH_FIELD, auth_data_dict)
             return
 

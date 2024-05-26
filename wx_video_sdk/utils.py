@@ -92,8 +92,11 @@ def setLoggingDefaultConfig() -> None:
     logging.addLevelName(15, "WX_VIDEIO_SDK_DEBUG")
 
     console_handler = logging.StreamHandler()
+    save_dir = "./logs"
+    mkdir_if_not_exist(save_dir)
+    
     file_handler = logging.FileHandler(
-        f"./wx_video_sdk-{parse_timestamp(float(time.time()),'%Y-%m-%d-%H-%M-%S')}.log",
+        f"./{save_dir}/wx_video_sdk-{parse_timestamp(float(time.time()),'%Y-%m-%d-%H-%M-%S')}.log",
         encoding="utf-8",
     )
 

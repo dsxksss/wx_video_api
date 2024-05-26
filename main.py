@@ -4,11 +4,13 @@ import sys
 import time
 import traceback
 import toml
+import questionary
 from wx_video_sdk import WXVideoSDK
 from wx_video_sdk.utils import (
     create_video_report,
     is_dev,
     is_within_days,
+    mkdir_if_not_exist,
     setLoggingDefaultConfig,
 )
 
@@ -83,7 +85,21 @@ def main():
     logging.info(f"配置文件 [ {config_path} ] 已载入.")
     logging.info("视频号助手脚本运行中...(ctrl+c或关闭窗口结束脚本)")
 
-    sdk = WXVideoSDK()
+    caches_dir = "./caches/"
+
+    mkdir_if_not_exist(caches_dir)
+    options = os.listdir(caches_dir)
+    selected = "None"
+
+    if len(options) > 0:
+        options.append("扫码登录新账号")
+        selected = questionary.select(
+            "检测到存在账号缓存，请使用上下方向键选择你要登录的账号:", options
+        ).ask()
+        
+    if not selected.endswith(".json"):
+        selected = f"{selected}.json"
+    sdk = WXVideoSDK(os.path.join(caches_dir, selected))
 
     # 载入历史聊天中已经发送过的用户
     sdk.load_private_history_already_senders(auto_send_private_msg)
