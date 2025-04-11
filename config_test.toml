@@ -5,9 +5,13 @@
 
 [run_config]
 # 运行延迟间隔，值越小脚本处理速度越快，不建议小于1，默认4
-run_delay = 4
+run_delay = 2
 # 设置最近输出几天之内要查看的视频数据(按该视频创建的时间)，默认2，设置成0则不会处理
-create_video_report_days = 999
+create_video_report_days = 2
+# 心跳检查间隔（秒），默认60秒检查一次会话状态
+heartbeat_interval = 30
+# 是否开启日志详细模式(0:关闭, 1:开启)，默认0
+verbose_logging = 1
 
 
 # 操作配置
@@ -21,6 +25,8 @@ auto_video_visible_days = 2
 max_video_count = 5500
 # 设置当以上两个配置都触发后的视频是否公开或隐藏(1:所有人可见,3:仅自己可见)，默认值3
 video_visible_type = 3
+# 任务执行间隔（秒），默认300秒执行一次
+task_interval = 120
 
 # 视频自动回复评论操作配置
 [auto_send_comment]
@@ -31,7 +37,11 @@ self_comment_target = 0
 # 设置最近几天之内要处理的评论(按该评论创建的时间)，默认2，设置成0则不会处理
 auto_send_comment_days = 2
 # 自动回复评论内容
-auto_send_comment_text = "你好我是config toml test 评论回复"
+auto_send_comment_text = "你好，测试配置的评论回复"
+# 任务执行间隔（秒），默认120秒执行一次
+task_interval = 60
+# 多条随机回复文本，用英文分号;分隔，如果不设置则使用auto_send_comment_text
+random_replies = "谢谢您的评论;感谢观看本视频;您的评论收到了，谢谢"
 
 # 视频自动回复私信操作配置 (这里只处理当脚本开启之后，用户再发送过来的私信)
 [auto_send_private_msg]
@@ -42,6 +52,21 @@ private_img_target = 1
 # 设置最近几天之内要处理的私信(按该私信创建的时间)，默认1，设置成0则不会处理
 auto_send_msg_days = 1
 # 自动回复私信文字内容
-auto_send_private_msg = "你好我是私信的消息 v1.5"
+auto_send_private_msg = "你好，测试配置的私信回复"
 # 自动回复私信图片文件路径
 auto_send_img_path = "./icon.png"
+# 任务执行间隔（秒），默认60秒执行一次
+task_interval = 30
+# 多条随机回复文本，用英文分号;分隔，如果不设置则使用auto_send_private_msg
+random_replies = "你好，很高兴收到您的私信;感谢关注，稍后回复您;收到您的消息了"
+
+# 数据导出配置
+[data_export]
+# 是否开启数据导出(0:关闭, 1:开启)，默认1
+export_target = 1
+# 数据导出间隔（秒），默认3600秒(1小时)执行一次
+export_interval = 900
+# 数据导出路径，默认./视频数据
+export_path = "./视频数据/测试"
+# 是否导出CSV格式(0:关闭, 1:开启)，默认1
+export_csv = 1

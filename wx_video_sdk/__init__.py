@@ -101,6 +101,7 @@ class WXVideoSDK:
             data=json.dumps(data) if use_json_headers else data,
             params=params if use_params else None,
             cookies=self.cookie,
+            verify=False,
         )
 
         if response.status_code >= 400:

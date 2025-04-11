@@ -161,6 +161,29 @@ def create_msg_tip(url: str, data: Dict) -> str:
     return url
 
 
+def install_ssl_cert():
+    """
+    尝试安装SSL证书，解决证书验证失败问题
+    """
+    import os
+    import ssl
+    import certifi
+    
+    try:
+        # 尝试设置SSL证书路径
+        os.environ['SSL_CERT_FILE'] = certifi.where()
+        os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+        
+        # 更新SSL上下文
+        ssl._create_default_https_context = ssl._create_unverified_context
+        
+        logging.info("已配置SSL证书环境")
+        return True
+    except Exception as e:
+        logging.error(f"配置SSL证书环境失败: {str(e)}")
+        return False
+
+
 if __name__ == "__main__":
     # 旧时间戳
     old_timestamp = 1714636554

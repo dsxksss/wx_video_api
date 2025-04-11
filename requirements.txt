@@ -1,0 +1,11 @@
+toml==0.10.2
+questionary==2.0.1
+requests==2.31.0
+qrcode==7.4.2
+pycryptodome==3.19.0
+pyinstaller==6.3.0
+python-dotenv==1.0.0
+pytest==7.4.3
+black==23.10.1
+pylint==3.0.2
+certifi==2023.11.17 
