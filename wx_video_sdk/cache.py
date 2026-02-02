@@ -1,39 +1,45 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from tinydb import TinyDB, Query
 
 
 class CacheHandler:
     def __init__(self, save_path: str):
         self.db = TinyDB(save_path)
+        self.query = Query()
 
-    # 检查数据是否已存在
-    def isExists(self, name: str) -> bool:
-        result = self.db.search(Query().name == name)
-        return len(result) > 0
+    def is_exists(self, name: str) -> bool:
+        """Check if a record with the given name exists."""
+        return self.db.contains(self.query.name == name)
 
-    # 存储缓存
-    def saveCache(self, name: str, key: str, value: Any) -> None:
-        if not self.isExists(name):
+    def save_cache(self, name: str, key: str, value: Any) -> None:
+        """Insert a new cache record if it doesn't exist."""
+        if not self.is_exists(name):
             self.db.insert({"name": name, key: value})
 
-    # 更新缓存
-    def updateCache(self, name: str, key: str, value: Any) -> None:
-        self.db.update({key: value}, Query().name == name)
+    def update_cache(self, name: str, key: str, value: Any) -> None:
+        """Update an existing cache record."""
+        self.db.update({key: value}, self.query.name == name)
 
-    # 获取缓存
-    def getCache(self, name: str) -> Dict[str, Any]:
-        data = self.db.search(Query().name == name)
-        result = data[0]
-        return result if result else dict()
+    def get_cache(self, name: str) -> Dict[str, Any]:
+        """Retrieve a cache record by name. Returns empty dict if not found."""
+        result = self.db.get(self.query.name == name)
+        return dict(result) if result else {}
 
-    # 获取全部缓存
-    def getCacheList(self) -> List[Any]:
+    def get_all_caches(self) -> List[Dict[str, Any]]:
+        """Return all cache records."""
         return self.db.all()
 
-    # 根据缓存名删除某个缓存
-    def removeCache(self, name: str) -> None:
-        self.db.remove(Query().name == name)
+    def remove_cache(self, name: str) -> None:
+        """Delete a cache record by name."""
+        self.db.remove(self.query.name == name)
 
-    # 清空缓存
-    def clearCache(self) -> None:
-        self.db.clear_cache()
+    def clear(self) -> None:
+        """Truncate the entire database."""
+        self.db.truncate()
+
+    # Alias for backward compatibility if needed, but better to use snake_case
+    isExists = is_exists
+    saveCache = save_cache
+    updateCache = update_cache
+    getCache = get_cache
+    removeCache = remove_cache

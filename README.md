@@ -30,6 +30,32 @@ pyinstaller -F -i icon.png main.py
    - 直接运行Python脚本：`python main.py`
    - 或者运行打包后的可执行文件
 
+## 开发者指南 (SDK使用)
+
+该项目已经过重构，开发者可以非常方便地将其作为 SDK 引入自己的项目：
+
+```python
+from wx_video_sdk import WXVideoClient, AppConfig
+
+# 加载配置
+config = AppConfig.load_from_toml("config.toml")
+
+# 初始化客户端
+client = WXVideoClient(cache_file_path="./caches/account.json")
+
+# 登录
+if not client.login_with_cache():
+    client.login_with_qrcode()
+
+# 调用 API (例如获取视频列表)
+videos = client.get_video_list()
+```
+
+### 核心类说明
+- `WXVideoClient`: 封装了底层的微信视频号助手 API
+- `WXVideoAssistant`: 封装了高层自动化逻辑（自动回复、定时任务等）
+- `AppConfig`: 结构化的配置管理类
+
 ## 配置文件说明
 
 `config.toml`配置文件详细说明：
