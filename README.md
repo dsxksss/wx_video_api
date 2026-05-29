@@ -1,4 +1,4 @@
-# 微信视频号助手 (wx_video_sdk) v1.1.0
+# 微信视频号助手 (wx_video_sdk) v1.2.0
 
 ## 功能介绍
 
@@ -7,35 +7,59 @@
 1. **数据统计与导出**：自动收集视频播放、点赞、评论等数据，并支持CSV格式导出
 2. **视频可见性管理**：根据设定的条件（如播放量）自动调整视频可见性
 3. **自动回复评论**：自动回复视频下的评论，支持随机回复内容
-4. **自动回复私信**：自动回复用户私信，支持文字和图片，支持随机回复内容
+4. **自动回复私信**：自动回复用户私信，支持文字和图片，支持随机回复内容，且支持**关键字过滤触发**
 5. **数据报告生成**：自动生成视频数据报告
 
-## 安装方法
+## 安装与运行
 
-### 打包为可执行文件
+本工程已升级至使用现代 Python 依赖管理工具 [uv](https://github.com/astral-sh/uv)。
 
+### 运行环境要求
+
+- Python 3.12+ (推荐)
+
+### 开发与本地运行
+
+1. 安装 `uv` 工具（若尚未安装）：
+   ```bash
+   pip install uv
+   ```
+2. 使用 `uv` 运行主程序（`uv` 会自动下载并配置 `.venv` 环境）：
+   ```bash
+   uv run main.py
+   ```
+   或者使用 `uv` 同步项目依赖环境：
+   ```bash
+   uv sync
+   ```
+
+### 打包为可执行文件 (PyInstaller)
+
+本工程包含 `main.spec` 配置文件，可通过以下命令直接打包成单文件二进制可执行程序：
+
+```bash
+uv run pyinstaller --clean main.spec
+```
+或者使用原生 PyInstaller 命令：
 ```bash
 pyinstaller -F -i icon.png main.py
 ```
 
-### 运行要求
-
-- Python 3.6+
-- 所需依赖包已在requirements.txt中列出
-
 ## 使用说明
 
-1. 修改`config.toml`配置文件，根据需要调整各项参数
+1. 修改`config.toml`配置文件，根据需要调整各项参数（例如配置自动回复文本、私信关键字等）
 2. 运行程序：
-   - 直接运行Python脚本：`python main.py`
+   - 直接运行：`uv run main.py`
    - 或者运行打包后的可执行文件
 
 ## 开发者指南 (SDK使用)
 
-该项目已经过重构，开发者可以非常方便地将其作为 SDK 引入自己的项目：
+该项目已经过重构，开发人员可以非常方便地将其作为 SDK 引入自己的项目：
 
 ```python
-from wx_video_sdk import WXVideoClient, AppConfig
+from wx_video_sdk import WXVideoClient, AppConfig, __version__
+
+print(f"SDK Version: {__version__}")
 
 # 加载配置
 config = AppConfig.load_from_toml("config.toml")
@@ -57,7 +81,7 @@ videos = client.get_video_list(page_size=10)
 
 ## 配置文件说明
 
-`config.toml`配置文件详细说明：
+`config.toml` 配置文件详细说明：
 
 ```toml
 # 脚本配置
@@ -103,18 +127,20 @@ random_replies = "感谢您的评论;谢谢支持;已收到您的评论，感谢
 [auto_send_private_msg]
 # 是否开启消息发送(0:关闭, 1:开启)，默认1
 private_msg_target = 1
-# 是否开启图片发送(0:关闭, 1:开启)，默认1
-private_img_target = 1
+# 是否开启图片发送(0:关闭, 1:开启)，默认0（关掉以免重复打扰，需要再开）
+private_img_target = 0
 # 设置最近几天之内要处理的私信(按该私信创建的时间)，默认1，设置成0则不会处理
 auto_send_msg_days = 1
-# 自动回复私信文字内容
-auto_send_private_msg = "你好，感谢私信"
+# 自动回复私信文字内容（random_replies 留空时用这条作为默认兜底）
+auto_send_private_msg = "感谢私信！商品详情请点击：https://example.com/product"
 # 自动回复私信图片文件路径
 auto_send_img_path = "./icon.png"
 # 任务执行间隔（秒），默认60秒执行一次
 task_interval = 60
 # 多条随机回复文本，用英文分号;分隔，如果不设置则使用auto_send_private_msg
-random_replies = "您好，感谢私信;已收到您的消息，稍后回复;谢谢您的关注"
+random_replies = "感谢私信～商品在这里：https://example.com/product-a;您好，商品链接奉上：https://example.com/product-b"
+# 关键字触发：留空数组 [] 表示所有新私信都回；填了关键字则只回包含其中任一关键字的私信（不区分大小写，子串匹配）
+trigger_keywords = ["666"]
 
 # 数据导出配置
 [data_export]
@@ -130,7 +156,14 @@ export_csv = 1
 
 ## 新功能说明
 
-### v1.1.0更新内容
+### v1.2.0 更新内容
+
+1. **私信关键字匹配回复**：引入 `trigger_keywords` 配置过滤，现在支持仅针对包含指定关键字（例如 `"666"`）的私信进行自动回复。
+2. **规范命名重构**：底层 SDK 代码接口方法全面重构为 Python 官方推荐的 `snake_case`（蛇形命名法），清理并淘汰了全部旧版驼峰命名兼容方法。
+3. **移除多余生成器**：删除了 SDK Client 中多余的 Generator 迭代设计（如 `iter_videos`），直接采用直观的列表遍历及 API 交互。
+4. **包与依赖工具链现代化**：正式弃用 `requirements.txt`，采用 `uv` + `pyproject.toml` 的项目管理体系。
+
+### v1.1.0 更新内容
 
 1. **随机回复功能**：评论和私信支持设置多条回复内容，随机选择一条回复
 2. **数据导出功能**：定期自动导出视频数据为CSV格式，方便后续分析

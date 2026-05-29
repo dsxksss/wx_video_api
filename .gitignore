@@ -6,3 +6,4 @@ logs/
 caches/
 视频数据/
 wx_video_sdk_cache.json
+*.zip
