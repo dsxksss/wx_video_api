@@ -40,16 +40,15 @@ from wx_video_sdk import WXVideoClient, AppConfig
 # 加载配置
 config = AppConfig.load_from_toml("config.toml")
 
-# 初始化客户端
+# 初始化客户端并登录（先尝试缓存，失败自动扫码）
 client = WXVideoClient(cache_file_path="./caches/account.json")
-
-# 登录
-if not client.login_with_cache():
-    client.login_with_qrcode()
+client.login()
 
 # 调用 API (例如获取视频列表)
-videos = client.get_video_list()
+videos = client.get_video_list(page_size=10)
 ```
+
+> 如需精细控制，仍可分别调用 `client.login_with_cache()` 和 `client.login_with_qrcode()`。
 
 ### 核心类说明
 - `WXVideoClient`: 封装了底层的微信视频号助手 API

@@ -71,25 +71,13 @@ class App:
         # Actually the Client saves to cache if cache_handler is present.
         
         if account_path == "Scan QR Code":
-            # For new accounts, we'll save it with nickname later. 
-            # The client needs a place to store it.
-            client = WXVideoClient(cache_file_path=None) 
-            # Note: My refactored client needs a small adjustment to handle new profile caching better 
-            # if we want it to be automatic. But let's keep it simple for now.
+            client = WXVideoClient(cache_file_path=None)
             client.login_with_qrcode()
         else:
             client = WXVideoClient(cache_file_path=account_path)
-            if not client.login_with_cache():
-                logging.warning("Cache login failed, falling back to QR code.")
-                client.login_with_qrcode()
+            client.login()
 
-        # Initialize Assistant
         self.assistant = WXVideoAssistant(client, self.config)
-        
-        # Load history
-        self.assistant.load_already_senders()
-        
-        # Start main loop
         self.assistant.start_loop()
 
 def main():

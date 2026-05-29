@@ -47,18 +47,22 @@ random_replies = "感谢您的评论;谢谢支持;已收到您的评论，感谢
 [auto_send_private_msg]
 # 是否开启消息发送(0:关闭, 1:开启)，默认1
 private_msg_target = 1
-# 是否开启图片发送(0:关闭, 1:开启)，默认1
-private_img_target = 1
+# 是否开启图片发送(0:关闭, 1:开启)，默认0（关掉以免重复打扰，需要再开）
+private_img_target = 0
 # 设置最近几天之内要处理的私信(按该私信创建的时间)，默认1，设置成0则不会处理
 auto_send_msg_days = 1
-# 自动回复私信文字内容
-auto_send_private_msg = "你好我是私信的消息"
+# 自动回复私信文字内容（random_replies 留空时用这条作为默认兜底）
+auto_send_private_msg = "感谢私信！商品详情请点击：https://example.com/product"
 # 自动回复私信图片文件路径
 auto_send_img_path = "./icon.png"
 # 任务执行间隔（秒），默认60秒执行一次
 task_interval = 60
-# 多条随机回复文本，用英文分号;分隔，如果不设置则使用auto_send_private_msg
-random_replies = "您好，感谢私信;已收到您的消息，稍后回复;谢谢您的关注"
+# 多条随机回复文本，用英文分号;分隔。每条都可以是一段带商品链接的话术。
+# 直接把下面的 https://example.com/xxx 换成自己的商品链接即可，可加可删，至少留 1 条。
+random_replies = "感谢私信～商品在这里：https://example.com/product-a;您好，商品链接奉上：https://example.com/product-b;点击查看完整商品信息：https://example.com/product-c"
+# 关键字触发：留空数组 [] 表示所有新私信都回；填了关键字则只回包含其中任一关键字的私信。
+# 不区分大小写、子串匹配。例如 ["666"] 时，私信 "666" / "我想要666" / "666 求链接" 都会触发。
+trigger_keywords = ["666"]
 
 # 数据导出配置
 [data_export]

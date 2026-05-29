@@ -24,9 +24,12 @@ class WXVideoAssistant:
         self.video_data_cache = {}
         self.private_already_sender: Set[str] = set()
         self.comment_already_sender: Set[str] = set()
+        self._history_loaded = False
 
-    def load_already_senders(self):
-        """Pre-load historical data to avoid duplicate replies."""
+    def load_already_senders(self, force: bool = False):
+        """Pre-load historical data to avoid duplicate replies. Idempotent unless force=True."""
+        if self._history_loaded and not force:
+            return
         logging.info("Loading historical interactions to prevent duplicate replies...")
         try:
             # Private messages
@@ -47,6 +50,7 @@ class WXVideoAssistant:
                         if level2.get("commentContent") == comment_text:
                             self.comment_already_sender.add(comment["commentId"])
                             break
+            self._history_loaded = True
             logging.info(f"Loaded {len(self.private_already_sender)} private and {len(self.comment_already_sender)} comment historical records.")
         except Exception as e:
             logging.error(f"Failed to load historical senders: {e}")
@@ -105,40 +109,48 @@ class WXVideoAssistant:
         days = self.config.auto_video_visible.auto_video_visible_days
         max_count = self.config.auto_video_visible.max_video_count
         target_type = self.config.auto_video_visible.video_visible_type
-        
-        for video in self.client.iter_videos():
+
+        for video in self.client.get_video_list():
             if video["readCount"] > max_count and is_within_days(days, time.time(), video["createTime"]):
                 self.client.update_video_visible(video["objectId"], target_type)
                 logging.info(f"Updated video {video['objectId']} visibility to {target_type}")
 
     def _handle_comment_replies(self):
         conf = self.config.auto_send_comment
-        # Using the new generator-based approach
-        for video, comment in self.client.iter_comments():
-            if comment["commentId"] in self.comment_already_sender:
+        for video in self.client.get_video_list():
+            export_id = video.get("exportId")
+            if not export_id:
                 continue
-            
-            if not is_within_days(conf.auto_send_comment_days, time.time(), comment["commentCreatetime"]):
-                continue
+            for comment in self.client.get_comment_list(export_id):
+                if comment["commentId"] in self.comment_already_sender:
+                    continue
 
-            is_self = comment["commentNickname"] == self.client.nick_name
-            if (conf.self_comment_target == 0 and not is_self) or (conf.self_comment_target == 1 and is_self):
-                reply = random.choice(conf.random_replies_list) if conf.random_replies_list else conf.auto_send_comment_text
-                try:
-                    self.client.send_comment_reply(video["exportId"], comment, reply)
-                    self.comment_already_sender.add(comment["commentId"])
-                    logging.info(f"Replied to comment by {comment['commentNickname']}: {reply}")
-                except Exception as e:
-                    logging.error(f"Failed to reply to comment: {e}")
+                if not is_within_days(conf.auto_send_comment_days, time.time(), comment["commentCreatetime"]):
+                    continue
+
+                is_self = comment["commentNickname"] == self.client.nick_name
+                if (conf.self_comment_target == 0 and not is_self) or (conf.self_comment_target == 1 and is_self):
+                    reply = random.choice(conf.random_replies_list) if conf.random_replies_list else conf.auto_send_comment_text
+                    try:
+                        self.client.send_comment_reply(export_id, comment, reply)
+                        self.comment_already_sender.add(comment["commentId"])
+                        logging.info(f"Replied to comment by {comment['commentNickname']}: {reply}")
+                    except Exception as e:
+                        logging.error(f"Failed to reply to comment: {e}")
 
     def _handle_private_messages(self):
         conf = self.config.auto_send_private_msg
-        for msg in self.client.iter_new_messages():
+        for msg in self.client.get_new_private_msgs():
             session_id = msg["sessionId"]
             if session_id in self.private_already_sender:
                 continue
-            
+
             if not is_within_days(conf.auto_send_msg_days, time.time(), msg["ts"]):
+                continue
+
+            # 关键字触发：未配置则保持原有行为（全部回），配置后只回命中的私信
+            if not conf.matches_trigger(msg.get("rawContent", "")):
+                logging.log(15, f"Skip msg from {msg.get('fromUsername')}: no trigger keyword hit")
                 continue
 
             try:
@@ -204,6 +216,7 @@ class WXVideoAssistant:
             self.export_video_data()
 
     def start_loop(self):
+        self.load_already_senders()
         logging.info("Starting Video Assistant loop... (Press Ctrl+C to stop)")
         while self.running:
             try:

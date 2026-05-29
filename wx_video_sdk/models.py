@@ -40,10 +40,19 @@ class AutoSendPrivateMsgConfig:
     auto_send_img_path: str = "./icon.png"
     task_interval: int = 60
     random_replies: str = ""
-    
+    # 关键字触发：空列表 = 所有私信都回；非空 = 仅包含任一关键字的私信才回（不区分大小写、子串匹配）
+    trigger_keywords: List[str] = field(default_factory=list)
+
     @property
     def random_replies_list(self) -> List[str]:
         return self.random_replies.split(";") if self.random_replies else []
+
+    def matches_trigger(self, content: str) -> bool:
+        """判断私信内容是否命中关键字。未配置关键字时一律返回 True。"""
+        if not self.trigger_keywords:
+            return True
+        text = (content or "").lower()
+        return any(kw.lower() in text for kw in self.trigger_keywords if kw)
 
 @dataclass
 class DataExportConfig:

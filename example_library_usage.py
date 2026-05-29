@@ -8,18 +8,15 @@ def main():
     # Setup basic logging
     logging.basicConfig(level=logging.INFO)
     
-    # Initialize the client with a specific cache file
+    # Initialize the client with a specific cache file, then login.
+    # client.login() tries the cache first and falls back to QR scan automatically.
     client = WXVideoClient(cache_file_path="./caches/your_nickname.json")
-    
-    # Try to login using cache
-    if not client.login_with_cache():
-        print("Cache login failed, please log in with QR code:")
-        client.login_with_qrcode()
-    
+    client.login()
+
     print(f"Logged in as: {client.nick_name}")
-    
+
     # Example 1: Get the last 5 videos
-    videos = client.get_video_list(pageSize=5)
+    videos = client.get_video_list(page_size=5)
     print(f"\nRecent Videos ({len(videos)}):")
     for v in videos:
         title = v.get("desc", {}).get("description", "No Title")

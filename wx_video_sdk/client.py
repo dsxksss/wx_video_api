@@ -4,7 +4,7 @@ import logging
 import os
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Set, Generator
+from typing import Any, Dict, List, Optional, Tuple, Generator
 
 import requests
 from Crypto.Random import get_random_bytes
@@ -105,8 +105,8 @@ class WXVideoClient:
             
             if url == WxVApiFields.Helper.helper_merlin_mmdata:
                 if self.cache_handler:
-                    self.cache_handler.removeCache("self")
-                    self.cache_handler.removeCache("auth_data")
+                    self.cache_handler.remove_cache("self")
+                    self.cache_handler.remove_cache("auth_data")
                 raise WxAuthError("Authentication expired. Please re-login.")
 
             msg = f"API [{msg_tip}] Error {err_code}: {err_msg}"
@@ -115,10 +115,19 @@ class WXVideoClient:
 
         return res.get("data"), response
 
+    def login(self) -> bool:
+        """
+        One-shot login: try cache first, fall back to QR code scan.
+        Returns True on success, False if QR flow was cancelled/expired.
+        """
+        if self.login_with_cache():
+            return True
+        return self.login_with_qrcode()
+
     def login_with_cache(self) -> bool:
         if not self.cache_handler:
             return False
-        
+
         self.cookie, ok = self._get_cookie_from_cache("self")
         if ok:
             try:
@@ -188,27 +197,6 @@ class WXVideoClient:
                 return False
         return False
 
-    # --- Generators ---
-
-    def iter_videos(self, pageSize: int = 10) -> Generator[Dict[str, Any], None, None]:
-        videos = self.get_video_list(pageSize=pageSize)
-        for video in videos:
-            yield video
-
-    def iter_comments(self, video_list: Optional[List[Any]] = None) -> Generator[Tuple[Dict[str, Any], Dict[str, Any]], None, None]:
-        target_list = video_list if video_list is not None else self.get_video_list()
-        for video in target_list:
-            export_id = video.get("exportId")
-            if not export_id: continue
-            comments = self.get_comment_list(export_id)
-            for comment in comments:
-                yield video, comment
-
-    def iter_new_messages(self) -> Generator[Dict[str, Any], None, None]:
-        msgs = self.get_new_private_msgs()
-        for msg in msgs:
-            yield msg
-
     # --- Internal Helpers ---
 
     def _fetch_and_save_auth_data(self):
@@ -232,12 +220,12 @@ class WXVideoClient:
             }
             if self.res_cookies:
                 self._save_cookie_to_cache("self", self.res_cookies)
-            self.cache_handler.saveCache("auth_data", CACHE_AUTH_FIELD, auth_data_dict)
+            self.cache_handler.save_cache("auth_data", CACHE_AUTH_FIELD, auth_data_dict)
 
     def _load_auth_data_from_cache(self):
         if not self.cache_handler:
             raise WxSDKError("No cache handler configured")
-        cache = self.cache_handler.getCache("auth_data")
+        cache = self.cache_handler.get_cache("auth_data")
         if not cache or CACHE_AUTH_FIELD not in cache:
             raise WxAuthError("Auth data missing in cache")
         
@@ -257,15 +245,15 @@ class WXVideoClient:
 
     def _save_cookie_to_cache(self, name: str, cookie: RequestsCookieJar):
         cookies_text = "; ".join([f"{n}={v}" for n, v in cookie.items()])
-        if self.cache_handler.isExists(name):
-            self.cache_handler.updateCache(name, CACHE_COOKIE_FIELD, cookies_text)
+        if self.cache_handler.is_exists(name):
+            self.cache_handler.update_cache(name, CACHE_COOKIE_FIELD, cookies_text)
         else:
-            self.cache_handler.saveCache(name, CACHE_COOKIE_FIELD, cookies_text)
+            self.cache_handler.save_cache(name, CACHE_COOKIE_FIELD, cookies_text)
 
     def _get_cookie_from_cache(self, name: str) -> Tuple[Optional[Dict[str, str]], bool]:
-        if not self.cache_handler or not self.cache_handler.isExists(name):
+        if not self.cache_handler or not self.cache_handler.is_exists(name):
             return None, False
-        cache = self.cache_handler.getCache(name)
+        cache = self.cache_handler.get_cache(name)
         cookies_text = cache.get(CACHE_COOKIE_FIELD)
         if not cookies_text: return None, False
         cookies = dict(item.split("=") for item in cookies_text.split("; ") if "=" in item)
@@ -286,9 +274,9 @@ class WXVideoClient:
         }
         self.request(WxVApiFields.Helper.helper_merlin_mmdata, ext_data=data)
 
-    def get_video_list(self, unread: bool = False, pageSize: int = 10) -> List[Dict[str, Any]]:
+    def get_video_list(self, unread: bool = False, page_size: int = 10) -> List[Dict[str, Any]]:
         data = {
-            "pageSize": pageSize, "currentPage": 1, "onlyUnread": unread,
+            "pageSize": page_size, "currentPage": 1, "onlyUnread": unread,
             "userpageType": 3, "needAllCommentCount": True, "forMcn": False,
         }
         res, _ = self.request(WxVApiFields.Post.post_list, ext_data=data)

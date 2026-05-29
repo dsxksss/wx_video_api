@@ -36,10 +36,3 @@ class CacheHandler:
     def clear(self) -> None:
         """Truncate the entire database."""
         self.db.truncate()
-
-    # Alias for backward compatibility if needed, but better to use snake_case
-    isExists = is_exists
-    saveCache = save_cache
-    updateCache = update_cache
-    getCache = get_cache
-    removeCache = remove_cache
